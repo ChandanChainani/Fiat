@@ -31,70 +31,85 @@ func main() {
 
 	//----------------------------------------------------
 	//Read G from Alice
-	buffer0 := make([]byte, 10)
+	buffer0 := make([]byte, 1024)
 	mLen0, err := connection.Read(buffer0)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	G := buffer0[:mLen0]
+  fmt.Println("G", mLen0)
+	var G_pt kyber.Point
+	suite.Read(bytes.NewBuffer(buffer0[:mLen0]), &G_pt)
 
 	//Read H from Alice
-	buffer1 := make([]byte, 10)
+	buffer1 := make([]byte, 1024)
 	mLen1, err := connection.Read(buffer1)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	H := buffer0[:mLen1]
+  fmt.Println("H", mLen1)
+	var H_pt kyber.Point
+	suite.Read(bytes.NewBuffer(buffer1[:mLen1]), &H_pt)
 
 	////Read xG from Alice
-	buffer := make([]byte, 10)
+	buffer := make([]byte, 1024)
 	mLen, err := connection.Read(buffer)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	xG := buffer[:mLen]
+  fmt.Println("xG", mLen)
+	var xG_pt kyber.Point
+	suite.Read(bytes.NewBuffer(buffer[:mLen]), &xG_pt)
 
 	//Read xH from Alice
-	buffer2 := make([]byte, 10)
+	buffer2 := make([]byte, 1024)
 	mLen2, err := connection.Read(buffer2)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	xH := buffer2[:mLen2]
+  fmt.Println("xH", mLen2)
+	var xH_pt kyber.Point
+	suite.Read(bytes.NewBuffer(buffer2[:mLen2]), &xH_pt)
 
 	//Make Rand c and Send c to Bob
 	c := suite.Scalar().Pick(rng)
 	buf := bytes.Buffer{}
 	suite.Write(&buf, &c)
+  fmt.Println("c", len(buf.Bytes()))
+  // Send c to Bob
+	connection.Write(buf.Bytes())
 
 	//Read vG from Alice
-	buffer3 := make([]byte, 10)
+	buffer3 := make([]byte, 1024)
 	mLen3, err := connection.Read(buffer3)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	vG := buffer3[:mLen3]
+  fmt.Println("vG", mLen3)
+	var vG kyber.Point
+	suite.Read(bytes.NewBuffer(buffer3[:mLen3]), &vG)
 
 	//Read vH from Alice
-	buffer4 := make([]byte, 10)
+	buffer4 := make([]byte, 1024)
 	mLen4, err := connection.Read(buffer4)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-	vH := buffer4[:mLen4]
+  fmt.Println("vH", mLen4)
+	var vH kyber.Point
+	suite.Read(bytes.NewBuffer(buffer4[:mLen4]), &vH)
 
 	//Read r form Bob
+	buffer5 := make([]byte, 1024)
+	mLen5, err := connection.Read(buffer5)
+	if err != nil {
+		fmt.Println("Error reading:", err.Error())
+	}
+  fmt.Println("r", mLen5)
 	var r kyber.Scalar
-	bufBytes := buf.Bytes()
-	if err := suite.Read(bytes.NewBuffer(bufBytes), &r); err != nil {
+	if err := suite.Read(bytes.NewBuffer(buffer5[:mLen5]), &r); err != nil {
 		log.Fatal("...")
 	}
-	defer connection.Close()
 
-	G_pt := suite.Point().Embed(G, nil)
-	H_pt := suite.Point().Embed(H, nil)
-	xG_pt := suite.Point().Embed(xG, nil)
-	xH_pt := suite.Point().Embed(xH, nil)
 
 	//mul r and G
 	rG := suite.Point().Mul(r, G_pt)
@@ -113,9 +128,9 @@ func main() {
 
 	//--------------------------------------------------------------------------------
 
-	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G, H)
+	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G_pt, H_pt)
 
-	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG, xH)
+	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG_pt, xH_pt)
 	fmt.Printf("Alice sends challenge:\n c: \t%s\n\n", c)
 	fmt.Printf("\nAlice :\n a:\t%s\n b:\t%s\n\n", a, b)
 
@@ -123,9 +138,10 @@ func main() {
 
 	//Conditon for Verification a and B
 	if !(vG.Equal(a) && vH.Equal(b)) {
-		fmt.Printf("Verifikasi Gagal!")
+		fmt.Println("Verifikasi Gagal!")
 	} else {
-		fmt.Printf("Verifikasi Berhasil")
+		fmt.Println("Verifikasi Berhasil")
 	}
+	fmt.Println("Closed")
 	connection.Close()
 }

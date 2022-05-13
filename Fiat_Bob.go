@@ -47,7 +47,6 @@ func GenerateRandomASCIIString(length int) (string, error) {
 	}
 }
 func main() {
-
 	fmt.Println("Server Running...")
 	server, err := net.Listen(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
 	if err != nil {
@@ -96,28 +95,36 @@ func processClient(connection net.Conn) {
 	//pick RNG point G and Send G to Alice
 	G := suite.Point().Pick(rng)
 	G_by, err := G.MarshalBinary()
+  fmt.Println("G", len(G_by))
 	_, err = connection.Write(G_by)
 
 	//pick RNG point H and Send H to Alice
 	H := suite.Point().Pick(rng)
 	H_by, err := H.MarshalBinary()
+  fmt.Println("H", len(H_by))
 	_, err = connection.Write(H_by)
 
 	//mul x ang G and Send xG to Alice
 	xG := suite.Point().Mul(x, G)
 	xG_by, err := xG.MarshalBinary()
+  fmt.Println("xG", len(xG_by))
 	_, err = connection.Write(xG_by)
 
 	//mul x ang H and Send xH to Alice
 	xH := suite.Point().Mul(x, H)
 	xH_by, err := xH.MarshalBinary()
+  fmt.Println("xH", len(xH_by))
 	_, err = connection.Write(xH_by)
 
 	//Read a Rand C from Alice
 	var c kyber.Scalar
-	buf := bytes.Buffer{}
-	if err := suite.Read(bytes.NewBuffer(buf), &c); err != nil {
-		log.Fatal("...")
+	buf := make([]byte, 1024)
+	mLen, err := connection.Read(buf)
+	if err != nil {
+		fmt.Println("Error reading:", err.Error())
+	}
+	if err := suite.Read(bytes.NewBuffer(buf[:mLen]), &c); err != nil {
+		log.Fatal("...", err.Error())
 	}
 
 	//pick rand V
@@ -126,27 +133,24 @@ func processClient(connection net.Conn) {
 	vG := suite.Point().Mul(v, G)
 	//Send Vg to Alice
 	vG_by, err := vG.MarshalBinary()
+  fmt.Println("vG", len(vG_by))
 	_, err = connection.Write(vG_by)
 
 	//mul v and H
 	vH := suite.Point().Mul(v, H)
 	//Send Vh to Alice
 	vH_by, err := vH.MarshalBinary()
+  fmt.Println("vH", len(vH_by))
 	_, err = connection.Write(vH_by)
-	defer connection.Close()
 
 	//mul (x and c) -> r , and then sub (v and r) -> r
 	r := suite.Scalar()
 	r.Mul(x, c).Sub(v, r)
 
 	r_by, err := r.MarshalBinary()
+  fmt.Println("r", len(r_by))
 	//send r to Alice
-	buf = bytes.Buffer{}
-	suite.Write(&buf, &r_by)
-	defer connection.Close()
-
-	// _, err = connection.Write(r_by)
-	// defer connection.Close()
+	_, err = connection.Write(r_by)
 
 	//mul r and G
 	rG := suite.Point().Mul(r, G)
@@ -174,9 +178,10 @@ func processClient(connection net.Conn) {
 
 	//Conditon for Verification a and b
 	if !(vG.Equal(a) && vH.Equal(b)) {
-		fmt.Printf("Verifikasi Gagal!")
+		fmt.Println("Verifikasi Gagal!")
 	} else {
-		fmt.Printf("Verifikasi Berhasil")
+		fmt.Println("Verifikasi Berhasil")
 	}
+	fmt.Println("Closing")
 	connection.Close()
 }
