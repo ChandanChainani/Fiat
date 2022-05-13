@@ -1,1 +1,2 @@
-Example from https://asecuritysite.com/encryption/go_fiat
+# Fiat-Shamir with ECC
+https://asecuritysite.com/encryption/go_fiat
