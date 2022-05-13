@@ -95,25 +95,25 @@ func processClient(connection net.Conn) {
 	//pick RNG point G and Send G to Alice
 	G := suite.Point().Pick(rng)
 	G_by, err := G.MarshalBinary()
-  fmt.Println("G", len(G_by))
+	fmt.Println("G", len(G_by))
 	_, err = connection.Write(G_by)
 
 	//pick RNG point H and Send H to Alice
 	H := suite.Point().Pick(rng)
 	H_by, err := H.MarshalBinary()
-  fmt.Println("H", len(H_by))
+	fmt.Println("H", len(H_by))
 	_, err = connection.Write(H_by)
 
 	//mul x ang G and Send xG to Alice
 	xG := suite.Point().Mul(x, G)
 	xG_by, err := xG.MarshalBinary()
-  fmt.Println("xG", len(xG_by))
+	fmt.Println("xG", len(xG_by))
 	_, err = connection.Write(xG_by)
 
 	//mul x ang H and Send xH to Alice
 	xH := suite.Point().Mul(x, H)
 	xH_by, err := xH.MarshalBinary()
-  fmt.Println("xH", len(xH_by))
+	fmt.Println("xH", len(xH_by))
 	_, err = connection.Write(xH_by)
 
 	//Read a Rand C from Alice
@@ -133,14 +133,14 @@ func processClient(connection net.Conn) {
 	vG := suite.Point().Mul(v, G)
 	//Send Vg to Alice
 	vG_by, err := vG.MarshalBinary()
-  fmt.Println("vG", len(vG_by))
+	fmt.Println("vG", len(vG_by))
 	_, err = connection.Write(vG_by)
 
 	//mul v and H
 	vH := suite.Point().Mul(v, H)
 	//Send Vh to Alice
 	vH_by, err := vH.MarshalBinary()
-  fmt.Println("vH", len(vH_by))
+	fmt.Println("vH", len(vH_by))
 	_, err = connection.Write(vH_by)
 
 	//mul (x and c) -> r , and then sub (v and r) -> r
@@ -148,7 +148,7 @@ func processClient(connection net.Conn) {
 	r.Mul(x, c).Sub(v, r)
 
 	r_by, err := r.MarshalBinary()
-  fmt.Println("r", len(r_by))
+	fmt.Println("r", len(r_by))
 	//send r to Alice
 	_, err = connection.Write(r_by)
 

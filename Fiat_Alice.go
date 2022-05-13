@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("G", mLen0)
+	fmt.Println("G", mLen0)
 	var G_pt kyber.Point
 	suite.Read(bytes.NewBuffer(buffer0[:mLen0]), &G_pt)
 
@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("H", mLen1)
+	fmt.Println("H", mLen1)
 	var H_pt kyber.Point
 	suite.Read(bytes.NewBuffer(buffer1[:mLen1]), &H_pt)
 
@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("xG", mLen)
+	fmt.Println("xG", mLen)
 	var xG_pt kyber.Point
 	suite.Read(bytes.NewBuffer(buffer[:mLen]), &xG_pt)
 
@@ -66,7 +66,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("xH", mLen2)
+	fmt.Println("xH", mLen2)
 	var xH_pt kyber.Point
 	suite.Read(bytes.NewBuffer(buffer2[:mLen2]), &xH_pt)
 
@@ -74,8 +74,8 @@ func main() {
 	c := suite.Scalar().Pick(rng)
 	buf := bytes.Buffer{}
 	suite.Write(&buf, &c)
-  fmt.Println("c", len(buf.Bytes()))
-  // Send c to Bob
+	fmt.Println("c", len(buf.Bytes()))
+	// Send c to Bob
 	connection.Write(buf.Bytes())
 
 	//Read vG from Alice
@@ -84,7 +84,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("vG", mLen3)
+	fmt.Println("vG", mLen3)
 	var vG kyber.Point
 	suite.Read(bytes.NewBuffer(buffer3[:mLen3]), &vG)
 
@@ -94,7 +94,7 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("vH", mLen4)
+	fmt.Println("vH", mLen4)
 	var vH kyber.Point
 	suite.Read(bytes.NewBuffer(buffer4[:mLen4]), &vH)
 
@@ -104,12 +104,11 @@ func main() {
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 	}
-  fmt.Println("r", mLen5)
+	fmt.Println("r", mLen5)
 	var r kyber.Scalar
 	if err := suite.Read(bytes.NewBuffer(buffer5[:mLen5]), &r); err != nil {
 		log.Fatal("...")
 	}
-
 
 	//mul r and G
 	rG := suite.Point().Mul(r, G_pt)
