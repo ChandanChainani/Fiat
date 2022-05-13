@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"time"
 
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/suites"
@@ -97,24 +98,28 @@ func processClient(connection net.Conn) {
 	G_by, err := G.MarshalBinary()
 	fmt.Println("G", len(G_by))
 	_, err = connection.Write(G_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//pick RNG point H and Send H to Alice
 	H := suite.Point().Pick(rng)
 	H_by, err := H.MarshalBinary()
 	fmt.Println("H", len(H_by))
 	_, err = connection.Write(H_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//mul x ang G and Send xG to Alice
 	xG := suite.Point().Mul(x, G)
 	xG_by, err := xG.MarshalBinary()
 	fmt.Println("xG", len(xG_by))
 	_, err = connection.Write(xG_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//mul x ang H and Send xH to Alice
 	xH := suite.Point().Mul(x, H)
 	xH_by, err := xH.MarshalBinary()
 	fmt.Println("xH", len(xH_by))
 	_, err = connection.Write(xH_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//Read a Rand C from Alice
 	var c kyber.Scalar
@@ -135,6 +140,7 @@ func processClient(connection net.Conn) {
 	vG_by, err := vG.MarshalBinary()
 	fmt.Println("vG", len(vG_by))
 	_, err = connection.Write(vG_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//mul v and H
 	vH := suite.Point().Mul(v, H)
@@ -142,6 +148,7 @@ func processClient(connection net.Conn) {
 	vH_by, err := vH.MarshalBinary()
 	fmt.Println("vH", len(vH_by))
 	_, err = connection.Write(vH_by)
+	time.Sleep(1 * time.Millisecond)
 
 	//mul (x and c) -> r , and then sub (v and r) -> r
 	r := suite.Scalar()
