@@ -1,0 +1,654 @@
+From dc73ca412008a26ab405bceaa1bc0064e0c731ae Mon Sep 17 00:00:00 2001
+From: Chandan Chainani <chainanichan@gmail.com>
+Date: Fri, 13 May 2022 07:23:56 +0530
+Subject: [PATCH] Fix issues
+
+---
+ Fiat_Alice.go | 274 +++++++++++++++++++++-----------------
+ Fiat_Bob.go   | 357 +++++++++++++++++++++++++++-----------------------
+ 2 files changed, 347 insertions(+), 284 deletions(-)
+
+diff --git a/Fiat_Alice.go b/Fiat_Alice.go
+index 92abc3b..6e621ee 100644
+--- a/Fiat_Alice.go
++++ b/Fiat_Alice.go
+@@ -1,121 +1,153 @@
+-package main
+-
+-import (
+-	"bytes"
+-	"fmt"
+-	"log"
+-	"net"
+-
+-	"go.dedis.ch/kyber/v4"
+-	"go.dedis.ch/kyber/v4/suites"
+-	"go.dedis.ch/kyber/v4/util/random"
+-)
+-
+-var rng = random.New()
+-
+-const (
+-	SERVER_HOST = "localhost"
+-	SERVER_PORT = "9988"
+-	SERVER_TYPE = "tcp"
+-)
+-
+-func main() {
+-	//establish connection
+-	connection, err := net.Dial(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
+-	if err != nil {
+-		panic(err)
+-	}
+-	//---------------------------------WORK-FIATSHAMIR-------------------------------------
+-
+-	suite := suites.MustFind("Ed25519")
+-
+-	//----------------------------------------------------
+-
+-	buffer0 := make([]byte, 1024)
+-	mLen0, err := connection.Read(buffer0)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	G := buffer0[:mLen0]
+-
+-	buffer1 := make([]byte, 1024)
+-	mLen1, err := connection.Read(buffer1)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	H := buffer0[:mLen1]
+-
+-	buffer := make([]byte, 1024)
+-	mLen, err := connection.Read(buffer)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	xG := buffer[:mLen]
+-	defer connection.Close()
+-
+-	buffer2 := make([]byte, 1024)
+-	mLen2, err := connection.Read(buffer2)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	xH := buffer2[:mLen2]
+-
+-	//Make Rand C and Send the data
+-	c := suite.Scalar().Pick(rng)
+-	buf := bytes.Buffer{}
+-	suite.Write(&buf, &c)
+-
+-	buffer3 := make([]byte, 1024)
+-	mLen3, err := connection.Read(buffer3)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	vG := buffer3[:mLen3]
+-	defer connection.Close()
+-
+-	buffer4 := make([]byte, 1024)
+-	mLen4, err := connection.Read(buffer4)
+-	if err != nil {
+-		fmt.Println("Error reading:", err.Error())
+-	}
+-	vH := buffer4[:mLen4]
+-	defer connection.Close()
+-
+-	var r kyber.Scalar
+-	bufBytes := buf.Bytes()
+-	if err := suite.Read(bytes.NewBuffer(bufBytes), &r); err != nil {
+-		log.Fatal("...")
+-	}
+-	defer connection.Close()
+-
+-	G_pt := suite.Point().Embed(G, nil)
+-	H_pt := suite.Point().Embed(H, nil)
+-	xG_pt := suite.Point().Embed(xG, nil)
+-	xH_pt := suite.Point().Embed(xH, nil)
+-
+-	rG := suite.Point().Mul(r, G_pt)
+-	rH := suite.Point().Mul(r, H_pt)
+-
+-	cxG := suite.Point().Mul(c, xG_pt)
+-	cxH := suite.Point().Mul(c, xH_pt)
+-
+-	a := suite.Point().Add(rG, cxG)
+-	b := suite.Point().Add(rH, cxH)
+-
+-	//--------------------------------------------------------------------------------
+-
+-	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G, H)
+-
+-	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG, xH)
+-	fmt.Printf("Alice sends challenge:\n c: \t%s\n\n", c)
+-	fmt.Printf("\nAlice :\n a:\t%s\n b:\t%s\n\n", a, b)
+-
+-	fmt.Printf("\nBob :\n a:\t%s\n b:\t%s\n\n", vG, vH)
+-
+-	// if !(vG.Equal(a) && vH.Equal(b)) {
+-	// 	fmt.Printf("Verifikasi Gagal!")
+-	// } else {
+-	// 	fmt.Printf("Verifikasi Berhasil")
+-	// }
+-	connection.Close()
+-}
++package main
++
++import (
++	"bytes"
++	"fmt"
++	"log"
++	"net"
++
++	"go.dedis.ch/kyber/v4"
++	"go.dedis.ch/kyber/v4/suites"
++	"go.dedis.ch/kyber/v4/util/random"
++)
++
++var rng = random.New()
++
++const (
++	SERVER_HOST = "localhost"
++	SERVER_PORT = "9988"
++	SERVER_TYPE = "tcp"
++)
++
++func main() {
++	//establish connection
++	connection, err := net.Dial(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
++	if err != nil {
++		panic(err)
++	}
++	// connection.Write([]byte("Hello Server"))
++	//---------------------------------WORK-FIATSHAMIR-------------------------------------
++
++	suite := suites.MustFind("Ed25519")
++
++	//----------------------------------------------------
++
++	buffer0 := make([]byte, 1024)
++	mLen0, err := connection.Read(buffer0)
++	if err != nil {
++		fmt.Println("1 Error reading:", err.Error())
++	}
++	var G_pt kyber.Point
++	suite.Read(bytes.NewBuffer(buffer0[:mLen0]), &G_pt)
++	// G_by, err := G_pt.MarshalBinary()
++	// fmt.Println("G by", G_by)
++
++	buffer1 := make([]byte, 1024)
++	mLen1, err := connection.Read(buffer1)
++	if err != nil {
++		fmt.Println("2 Error reading:", err.Error())
++	}
++	// H := buffer0[:mLen1]
++	var H_pt kyber.Point
++	suite.Read(bytes.NewBuffer(buffer1[:mLen1]), &H_pt)
++	// H_by, err := H_pt.MarshalBinary()
++	// fmt.Println("H", string(H))
++
++	buffer := make([]byte, 1024)
++	mLen, err := connection.Read(buffer)
++	if err != nil {
++		fmt.Println("3 Error reading:", err.Error())
++	}
++	// xG := buffer[:mLen]
++	var xG_pt kyber.Point
++	suite.Read(bytes.NewBuffer(buffer[:mLen]), &xG_pt)
++	// xG_by, err := xG_pt.MarshalBinary()
++	// defer connection.Close()
++
++	buffer2 := make([]byte, 1024)
++	mLen2, err := connection.Read(buffer2)
++	if err != nil {
++		fmt.Println("4 Error reading:", err.Error())
++	}
++	// xH := buffer2[:mLen2]
++	var xH_pt kyber.Point
++	suite.Read(bytes.NewBuffer(buffer2[:mLen2]), &xH_pt)
++	// xH_by, err := xH_pt.MarshalBinary()
++
++	//Make Rand C and Send the data
++	c := suite.Scalar().Pick(rng)
++	buf := bytes.Buffer{}
++	suite.Write(&buf, &c)
++	// fmt.Println(string(buf.Bytes()))
++
++	connection.Write(buf.Bytes())
++
++	buffer3 := make([]byte, 1024)
++	mLen3, err := connection.Read(buffer3)
++	if err != nil {
++		fmt.Println("5 Error reading:", err.Error())
++	}
++	// vG := buffer3[:mLen3]
++	var vG kyber.Point
++	suite.Read(bytes.NewBuffer(buffer3[:mLen3]), &vG)
++	// fmt.Println(string(vG))
++	// defer connection.Close()
++
++	buffer4 := make([]byte, 1024)
++	mLen4, err := connection.Read(buffer4)
++	if err != nil {
++		fmt.Println("6 Error reading:", err.Error())
++	}
++	// vH := buffer4[:mLen4]
++	var vH kyber.Point
++	suite.Read(bytes.NewBuffer(buffer4[:mLen4]), &vH)
++	// fmt.Println(vH)
++	// defer connection.Close()
++
++	buffer5 := make([]byte, 1024)
++	mLen5, err := connection.Read(buffer5)
++	if err != nil {
++		fmt.Println("Error reading:", err.Error())
++	}
++	// fmt.Println("Buf5", mLen5, buffer5)
++	// r := buffer5[:mLen5]
++	var r kyber.Scalar
++	if err := suite.Read(bytes.NewBuffer(buffer5[:mLen5]), &r); err != nil {
++		// fmt.Println(buffer5[:mLen5])
++		log.Fatal("...")
++	}
++	/// // defer connection.Close()
++
++	// fmt.Println(r)
++	// G_pt := suite.Point().Embed(G, nil)
++	// H_pt := suite.Point().Embed(H, nil)
++	// xG_pt := suite.Point().Embed(xG, nil)
++	// xH_pt := suite.Point().Embed(xH, nil)
++
++	rG := suite.Point().Mul(r, G_pt)
++	rH := suite.Point().Mul(r, H_pt)
++
++	cxG := suite.Point().Mul(c, xG_pt)
++	cxH := suite.Point().Mul(c, xH_pt)
++
++	a := suite.Point().Add(rG, cxG)
++	b := suite.Point().Add(rH, cxH)
++
++	//--------------------------------------------------------------------------------
++
++	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G_pt, H_pt)
++
++	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG_pt, xH_pt)
++	fmt.Printf("Alice sends challenge:\n c: \t%s\n\n", c)
++	fmt.Printf("\nAlice :\n a:\t%s\n b:\t%s\n\n", a, b)
++
++	fmt.Printf("\nBob :\n a:\t%s\n b:\t%s\n\n", vG, vH)
++
++	// if !(vG.Equal(a) && vH.Equal(b)) {
++	// 	fmt.Printf("Verifikasi Gagal!")
++	// } else {
++	// 	fmt.Printf("Verifikasi Berhasil")
++	// }
++	fmt.Println("Closed")
++	connection.Close()
++}
+diff --git a/Fiat_Bob.go b/Fiat_Bob.go
+index 0bfabce..3236dd9 100644
+--- a/Fiat_Bob.go
++++ b/Fiat_Bob.go
+@@ -1,163 +1,194 @@
+-package main
+-
+-import (
+-	"bytes"
+-	"crypto/rand"
+-	"crypto/sha256"
+-	"fmt"
+-	"log"
+-	"math/big"
+-	"net"
+-	"os"
+-
+-	"go.dedis.ch/kyber/v4"
+-	"go.dedis.ch/kyber/v4/suites"
+-	"go.dedis.ch/kyber/v4/util/random"
+-)
+-
+-func read_int32(data []byte) int32 {
+-	return int32(uint32(data[0]) + uint32(data[1])<<8 + uint32(data[2])<<16 + uint32(data[3])<<24)
+-}
+-
+-const (
+-	SERVER_HOST = "localhost"
+-	SERVER_PORT = "9988"
+-	SERVER_TYPE = "tcp"
+-)
+-
+-var rng = random.New()
+-
+-func GenerateRandomASCIIString(length int) (string, error) {
+-	result := ""
+-	for {
+-		if len(result) >= length {
+-			return result, nil
+-		}
+-		num, err := rand.Int(rand.Reader, big.NewInt(int64(127)))
+-		if err != nil {
+-			return "", err
+-		}
+-		n := num.Int64()
+-		// Make sure that the number/byte/letter is inside
+-		// the range of printable ASCII characters (excluding space and DEL)
+-		if n > 32 && n < 127 {
+-			result += string(n)
+-		}
+-	}
+-}
+-func main() {
+-	fmt.Println("Server Running...")
+-	server, err := net.Listen(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
+-	if err != nil {
+-		fmt.Println("Error listening:", err.Error())
+-		os.Exit(1)
+-	}
+-	defer server.Close()
+-	fmt.Println("Listening on " + SERVER_HOST + ":" + SERVER_PORT)
+-	fmt.Println("Waiting for client...")
+-	for {
+-		connection, err := server.Accept()
+-		if err != nil {
+-			fmt.Println("Error accepting: ", err.Error())
+-			os.Exit(1)
+-		}
+-		fmt.Println("client connected")
+-		go processClient(connection)
+-	}
+-}
+-func processClient(connection net.Conn) {
+-
+-	//---------------------------------WORK-FIATSHAMIR-------------------------------------
+-	suite := suites.MustFind("Ed25519")
+-	length := 10
+-
+-	m, err := GenerateRandomASCIIString(length)
+-	if err != nil {
+-		panic(err)
+-	}
+-
+-	argCount := len(os.Args[1:])
+-
+-	if argCount > 0 {
+-		m = string(os.Args[1])
+-	}
+-
+-	message := []byte(m)
+-	scal := sha256.Sum256(message[:])
+-
+-	x := suite.Scalar().SetBytes(scal[:32])
+-
+-	G := suite.Point().Pick(rng)
+-	G_by, err := G.MarshalBinary()
+-	_, err = connection.Write(G_by)
+-	defer connection.Close()
+-
+-	H := suite.Point().Pick(rng)
+-	H_by, err := H.MarshalBinary()
+-	_, err = connection.Write(H_by)
+-	defer connection.Close()
+-
+-	xG := suite.Point().Mul(x, G)
+-	xG_by, err := xG.MarshalBinary()
+-	_, err = connection.Write(xG_by)
+-	defer connection.Close()
+-
+-	xH := suite.Point().Mul(x, H)
+-	xH_by, err := xH.MarshalBinary()
+-	_, err = connection.Write(xH_by)
+-
+-	var c kyber.Scalar
+-	buf := bytes.Buffer{}
+-	bufBytes := buf.Bytes()
+-	if err := suite.Read(bytes.NewBuffer(bufBytes), &c); err != nil {
+-		log.Fatal("...")
+-	}
+-
+-	v := suite.Scalar().Pick(suite.RandomStream())
+-	vG := suite.Point().Mul(v, G)
+-	vG_by, err := vG.MarshalBinary()
+-	_, err = connection.Write(vG_by)
+-	defer connection.Close()
+-
+-	vH := suite.Point().Mul(v, H)
+-	vH_by, err := vH.MarshalBinary()
+-	_, err = connection.Write(vH_by)
+-	defer connection.Close()
+-
+-	r := suite.Scalar()
+-	r.Mul(x, c).Sub(v, r)
+-
+-	r_by, err := r.MarshalBinary()
+-
+-	buf = bytes.Buffer{}
+-	suite.Write(&buf, &r_by)
+-
+-	// _, err = connection.Write(r_by)
+-	// defer connection.Close()
+-
+-	rG := suite.Point().Mul(r, G)
+-	rH := suite.Point().Mul(r, H)
+-
+-	cxG := suite.Point().Mul(c, xG)
+-	cxH := suite.Point().Mul(c, xH)
+-
+-	a := suite.Point().Add(rG, cxG)
+-	b := suite.Point().Add(rH, cxH)
+-
+-	//--------------------------------------------------------------------------------
+-
+-	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G, H)
+-
+-	fmt.Printf("Bob's Password\t: %s\n", m)
+-	fmt.Printf("Bob's Secret (x): %s\n\n", x)
+-	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG, xH)
+-	fmt.Printf("Alice sends challenge:\n c: \t%s\n\n", c)
+-	fmt.Printf("Bob computes:\n v:\t%s\n r:\t%s\n\n", v, r)
+-
+-	if !(vG.Equal(a) && vH.Equal(b)) {
+-		fmt.Printf("Verifikasi Gagal!")
+-	} else {
+-		fmt.Printf("Verifikasi Berhasil")
+-	}
+-	connection.Close()
+-}
++package main
++
++import (
++	"bytes"
++	"crypto/rand"
++	"crypto/sha256"
++	"fmt"
++	"log"
++	"math/big"
++	"net"
++	"os"
++
++	"go.dedis.ch/kyber/v4"
++	"go.dedis.ch/kyber/v4/suites"
++	"go.dedis.ch/kyber/v4/util/random"
++)
++
++func read_int32(data []byte) int32 {
++	return int32(uint32(data[0]) + uint32(data[1])<<8 + uint32(data[2])<<16 + uint32(data[3])<<24)
++}
++
++const (
++	SERVER_HOST = "localhost"
++	SERVER_PORT = "9988"
++	SERVER_TYPE = "tcp"
++)
++
++var rng = random.New()
++
++func GenerateRandomASCIIString(length int) (string, error) {
++	result := ""
++	for {
++		if len(result) >= length {
++			// fmt.Println(result)
++			return result, nil
++		}
++		num, err := rand.Int(rand.Reader, big.NewInt(int64(127)))
++		if err != nil {
++			return "", err
++		}
++		n := num.Int64()
++		// Make sure that the number/byte/letter is inside
++		// the range of printable ASCII characters (excluding space and DEL)
++		if n > 32 && n < 127 {
++			result += string(n)
++		}
++	}
++}
++func main() {
++	fmt.Println("Server Running...")
++	server, err := net.Listen(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
++	if err != nil {
++		fmt.Println("Error listening:", err.Error())
++		os.Exit(1)
++	}
++	defer server.Close()
++	fmt.Println("Listening on " + SERVER_HOST + ":" + SERVER_PORT)
++	fmt.Println("Waiting for client...")
++	for {
++		connection, err := server.Accept()
++		if err != nil {
++			fmt.Println("Error accepting: ", err.Error())
++			os.Exit(1)
++		}
++		fmt.Println("client connected")
++		go processClient(connection)
++	}
++	fmt.Println("Exiting")
++}
++func processClient(connection net.Conn) {
++	fmt.Println("processClient")
++
++	//---------------------------------WORK-FIATSHAMIR-------------------------------------
++	suite := suites.MustFind("Ed25519")
++	length := 10
++
++	m, err := GenerateRandomASCIIString(length)
++	if err != nil {
++		panic(err)
++	}
++
++	argCount := len(os.Args[1:])
++
++	if argCount > 0 {
++		m = string(os.Args[1])
++	}
++
++	message := []byte(m)
++	scal := sha256.Sum256(message[:])
++
++	x := suite.Scalar().SetBytes(scal[:32])
++
++	G := suite.Point().Pick(rng)
++	// G_by, err := G.MarshalBinary()
++  G_by := bytes.Buffer{}
++  suite.Write(&G_by, &G)
++	_, err = connection.Write(G_by.Bytes())
++	/// fmt.Println(err)
++	// defer connection.Close()
++
++	H := suite.Point().Pick(rng)
++	// H_by, err := H.MarshalBinary()
++  H_by := bytes.Buffer{}
++  suite.Write(&H_by, &H)
++	_, err = connection.Write(H_by.Bytes())
++	/// fmt.Println(err)
++	// defer connection.Close()
++
++	xG := suite.Point().Mul(x, G)
++	// xG_by, err := xG.MarshalBinary()
++  xG_by := bytes.Buffer{}
++  suite.Write(&xG_by, &xG)
++	_, err = connection.Write(xG_by.Bytes())
++	/// fmt.Println(err)
++	// defer connection.Close()
++
++	xH := suite.Point().Mul(x, H)
++	// xH_by, err := xH.MarshalBinary()
++  xH_by := bytes.Buffer{}
++  suite.Write(&xH_by, &xH)
++	_, err = connection.Write(xH_by.Bytes())
++	// fmt.Println(err)
++
++	var c kyber.Scalar
++	// buf := bytes.Buffer{}
++	buf := make([]byte, 1024)
++	mLen, err := connection.Read(buf)
++	if err != nil {
++		fmt.Println("Error reading:", err.Error())
++	}
++	if err := suite.Read(bytes.NewBuffer(buf[:mLen]), &c); err != nil {
++		log.Fatal("...", err.Error())
++	}
++
++	v := suite.Scalar().Pick(suite.RandomStream())
++	vG := suite.Point().Mul(v, G)
++	// vG_by, err := vG.MarshalBinary()
++  vG_by := bytes.Buffer{}
++  suite.Write(&vG_by, &vG)
++	_, err = connection.Write(vG_by.Bytes())
++	// defer connection.Close()
++
++	vH := suite.Point().Mul(v, H)
++	// vH_by, err := vH.MarshalBinary()
++  vH_by := bytes.Buffer{}
++  suite.Write(&vH_by, &vH)
++	_, err = connection.Write(vH_by.Bytes())
++	// defer connection.Close()
++
++	r := suite.Scalar()
++	r.Mul(x, c).Sub(v, r)
++	// fmt.Println("v", v)
++	// fmt.Println("x", x)
++	// fmt.Println("c", c)
++	// fmt.Println("r", r)
++
++	// r_by, err := r.MarshalBinary()
++  r_by := bytes.Buffer{}
++  suite.Write(&r_by, &r)
++  // fmt.Println(r_by)
++
++  // byteBuf := bytes.Buffer{}
++	// suite.Write(&byteBuf, &r)
++
++	_, err = connection.Write(r_by.Bytes())
++	// defer connection.Close()
++
++	rG := suite.Point().Mul(r, G)
++	rH := suite.Point().Mul(r, H)
++
++	cxG := suite.Point().Mul(c, xG)
++	cxH := suite.Point().Mul(c, xH)
++
++	a := suite.Point().Add(rG, cxG)
++	b := suite.Point().Add(rH, cxH)
++
++	//--------------------------------------------------------------------------------
++
++	fmt.Printf("Bob and Alice agree:\n G:\t%s\n H:\t%s\n\n", G, H)
++
++	fmt.Printf("Bob's Password\t: %s\n", m)
++	fmt.Printf("Bob's Secret (x): %s\n\n", x)
++	fmt.Printf("Bob sends these values:\n xG:\t%s\n xH: \t%s\n\n", xG, xH)
++	fmt.Printf("Alice sends challenge:\n c: \t%s\n\n", c)
++	fmt.Printf("Bob computes:\n v:\t%s\n r:\t%s\n\n", v, r)
++
++	if !(vG.Equal(a) && vH.Equal(b)) {
++		fmt.Println("Verifikasi Gagal!")
++	} else {
++		fmt.Println("Verifikasi Berhasil")
++	}
++	fmt.Println("Closing")
++	connection.Close()
++}
+-- 
+2.25.1
+
